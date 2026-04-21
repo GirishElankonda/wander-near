@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="WanderNear - Budget-based trip planner. Set your budget and plan your trip while browsing places in another tab.">
+    <title>WanderNear - Trip Planner</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="bookings-styles.css">
+    <link rel="stylesheet" href="trip-planner-styles.css">
+</head>
+
+<body>
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="index.html"
+                    style="display: flex; align-items: center; gap: 0.5rem; color: inherit; text-decoration: none;">
+                    <i class="fas fa-compass brand-icon"></i>
+                    <span class="brand-text">WanderNear</span>
+                </a>
+            </div>
+
+            <div class="nav-menu" id="navMenu">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="index.html#explore" class="nav-link">Explore</a>
+                <a href="trip-planner.html" class="nav-link active">Trip Planner</a>
+                <a href="index.html#bookings" class="nav-link">My List</a>
+                <a href="index.html#favorites" class="nav-link">Favorites</a>
+            </div>
+
+            <div class="nav-actions">
+                <button class="btn-icon" id="themeToggle" aria-label="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="user-menu-container" style="position: relative;">
+                    <button class="btn-secondary" id="loginBtn">
+                        <i class="fas fa-user"></i>
+                        <span>Sign In</span>
+                    </button>
+                    <div class="user-menu-dropdown" id="userMenuDropdown">
+                        <div class="user-menu-header">
+                            <div class="user-avatar-large" id="menuUserAvatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="user-info">
+                                <h4 id="menuUserName">User Name</h4>
+                                <p id="menuUserEmail">user@example.com</p>
+                            </div>
+                        </div>
+                        <div class="user-menu-items">
+                            <a href="#profile" class="menu-item">
+                                <i class="fas fa-user-circle"></i>
+                                <span>Profile</span>
+                            </a>
+                            <a href="#settings" class="menu-item">
+                                <i class="fas fa-cog"></i>
+                                <span>Settings</span>
+                            </a>
+                            <div class="menu-divider"></div>
+                            <button class="menu-item text-danger" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Sign Out</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-icon mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="planner-page-main">
+        <div class="planner-sync-banner" id="plannerSyncBanner">
+            <i class="fas fa-external-link-alt"></i>
+            <span>Open <a href="index.html#explore" target="_blank" rel="noopener">Explore</a> in another tab to browse
+                places — they sync here so you can check places and budget at the same time.</span>
+        </div>
+
+        <section class="trip-planner-section" id="trip-planner">
+            <div class="planner-container">
+                <div class="section-header centered">
+                    <h2 class="section-title">Budget-Based Auto Trip Planner</h2>
+                    <p class="section-subtitle">Let AI plan your perfect trip within your budget</p>
+                </div>
+
+                <div class="planner-card">
+                    <div class="budget-input-section">
+                        <h3>Your Budget</h3>
+                        <div class="budget-input-group">
+                            <div class="budget-input-wrapper">
+                                <span class="budget-currency">₹</span>
+                                <input type="number" id="budgetInput" class="budget-input" placeholder="0.00" min="0"
+                                    step="10">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="auto-mode-section">
+                        <div class="auto-mode-label">
+                            <div class="auto-mode-icon">🤖</div>
+                            <div class="auto-mode-text">
+                                <h4>Auto Planning Mode</h4>
+                                <p>Let AI automatically generate your itinerary</p>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="autoModeToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="duration-section">
+                        <h4>Plan Duration</h4>
+                        <div class="duration-buttons">
+                            <button class="duration-btn active" data-duration="1">
+                                <i class="fas fa-calendar-day"></i>
+                                1 Day
+                            </button>
+                            <button class="duration-btn" data-duration="2">
+                                <i class="fas fa-calendar-alt"></i>
+                                2 Days
+                            </button>
+                            <button class="duration-btn" data-duration="3">
+                                <i class="fas fa-calendar-week"></i>
+                                3 Days
+                            </button>
+                            <button class="duration-btn" data-duration="7">
+                                <i class="fas fa-calendar"></i>
+                                Entire Trip (7 Days)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="budgetBreakdown"></div>
+
+                    <div id="manualSelectionSection" class="manual-selection-section" style="display: none;">
+                        <h4>Manual Selection Mode</h4>
+                        <p>Open Explore in another tab to browse places and add them to your itinerary.</p>
+                        <a href="index.html#explore" target="_blank" rel="noopener" class="btn-primary">
+                            <i class="fas fa-external-link-alt"></i>
+                            Open Explore in New Tab
+                        </a>
+                    </div>
+
+                    <div id="autoGenerationSection" style="display: none;"></div>
+
+                    <div class="generate-section">
+                        <button class="btn-generate disabled" id="generatePlanBtn">
+                            <i class="fas fa-magic"></i>
+                            <span>Generate Trip Plan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="itineraryContainer" class="itinerary-container"></div>
+
+                <button type="button" class="btn-regenerate" id="regeneratePlanBtn" style="display: none;">
+                    <i class="fas fa-sync-alt"></i>
+                    Regenerate Plan
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <div class="modal" id="authModal">
+        <div class="modal-overlay" id="authModalOverlay"></div>
+        <div class="modal-content auth-modal">
+            <button class="modal-close" id="authModalClose">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="auth-container">
+                <div class="auth-header">
+                    <i class="fas fa-compass auth-logo"></i>
+                    <h2 id="authTitle">Welcome to WanderNear</h2>
+                    <p id="authSubtitle">Sign in to save favorites and add to your list</p>
+                </div>
+                <div class="auth-form" id="authForm">
+                    <div class="input-group">
+                        <label for="authEmail">Email</label>
+                        <input type="email" id="authEmail" placeholder="your@email.com" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="authPassword">Password</label>
+                        <input type="password" id="authPassword" placeholder="••••••••" required>
+                    </div>
+                    <div class="input-group" id="nameGroup" style="display: none;">
+                        <label for="authName">Full Name</label>
+                        <input type="text" id="authName" placeholder="John Doe">
+                    </div>
+                    <div class="remember-me-container">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="rememberMeCheck">
+                            <span class="checkmark"></span>
+                            <span class="label-text">Remember Me</span>
+                        </label>
+                    </div>
+                    <button class="btn-primary btn-full" id="authSubmitBtn">
+                        <span>Sign In</span>
+                    </button>
+                    <div class="auth-divider">
+                        <span>or continue with</span>
+                    </div>
+                    <button class="btn-social google-btn" id="googleSignInBtn">
+                        <i class="fab fa-google"></i>
+                        <span>Continue with Google</span>
+                    </button>
+                    <div class="auth-footer">
+                        <p id="authToggleText">
+                            Don't have an account?
+                            <a href="#" id="authToggleLink">Sign up</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="config.generated.js"></script>
+    <script type="module" src="auth.js"></script>
+    <script src="planner-page.js"></script>
+    <script src="trip-planner.js"></script>
+    <style>
+        .remember-me-container {
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            gap: 0.5rem;
+        }
+
+        .checkbox-container input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        .checkmark {
+            height: 18px;
+            width: 18px;
+            background: var(--neutral-0);
+            border: 1px solid var(--neutral-200);
+            border-radius: 4px;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox-container:hover input~.checkmark {
+            border-color: var(--primary-500);
+        }
+
+        .checkbox-container input:checked~.checkmark {
+            background: var(--primary-500);
+            border-color: var(--primary-500);
+        }
+
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+        }
+
+        .checkbox-container input:checked~.checkmark:after {
+            display: block;
+        }
+
+        .checkbox-container .checkmark:after {
+            left: 5px;
+            top: 2px;
+            width: 4px;
+            height: 8px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .label-text {
+            font-size: 0.9rem;
+            color: var(--neutral-800);
+        }
+    </style>
+</body>
+
+</html>

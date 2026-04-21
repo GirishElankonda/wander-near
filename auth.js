@@ -44,10 +44,13 @@ const userMenuDropdown = document.getElementById('userMenuDropdown');
 const menuUserName = document.getElementById('menuUserName');
 const menuUserEmail = document.getElementById('menuUserEmail');
 const logoutBtn = document.getElementById('logoutBtn');
+const profileMenuBtn = document.getElementById('profileMenuBtn');
+const settingsMenuBtn = document.getElementById('settingsMenuBtn');
 
 // State
 let isSignUp = false;
 let currentAuthUser = null; // Track current authenticated user
+let authListenersBound = false;
 
 // ==========================================
 // Initialization
@@ -65,41 +68,60 @@ function initAuth() {
 // ==========================================
 
 function setupEventListeners() {
-    // Modal Controls
-    if (loginBtn) {
-        loginBtn.addEventListener('click', openAuthModal);
-    }
+    if (authListenersBound) return;
+    authListenersBound = true;
 
-    if (authModalClose) {
-        authModalClose.addEventListener('click', closeAuthModal);
-    }
+    // Delegate clicks so handlers still work if DOM content is re-rendered.
+    document.addEventListener('click', (e) => {
+        const target = e.target;
+        if (!(target instanceof Element)) return;
 
-    if (authModalOverlay) {
-        authModalOverlay.addEventListener('click', closeAuthModal);
-    }
+        if (target.closest('#loginBtn')) {
+            e.preventDefault();
+            openAuthModal();
+            return;
+        }
 
-    // Toggle Sign In / Sign Up
-    if (authToggleLink) {
-        authToggleLink.addEventListener('click', (e) => {
+        if (target.closest('#authModalClose') || target.closest('#authModalOverlay')) {
+            e.preventDefault();
+            closeAuthModal();
+            return;
+        }
+
+        if (target.closest('#authToggleLink')) {
             e.preventDefault();
             toggleAuthMode();
-        });
-    }
+            return;
+        }
 
-    // Form Submission
-    if (authSubmitBtn) {
-        authSubmitBtn.addEventListener('click', handleAuthSubmit);
-    }
+        if (target.closest('#authSubmitBtn')) {
+            handleAuthSubmit(e);
+            return;
+        }
 
-    // Google Sign In
-    if (googleSignInBtn) {
-        googleSignInBtn.addEventListener('click', handleGoogleSignIn);
-    }
+        if (target.closest('#googleSignInBtn')) {
+            e.preventDefault();
+            handleGoogleSignIn();
+            return;
+        }
 
-    // Logout
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
-    }
+        if (target.closest('#logoutBtn')) {
+            e.preventDefault();
+            handleLogout();
+            return;
+        }
+
+        if (target.closest('#profileMenuBtn')) {
+            e.preventDefault();
+            handleProfileClick();
+            return;
+        }
+
+        if (target.closest('#settingsMenuBtn')) {
+            e.preventDefault();
+            handleSettingsClick();
+        }
+    });
 }
 
 // ==========================================
@@ -174,6 +196,11 @@ async function handleGoogleSignIn() {
     try {
         console.log('🔑 Signing in with Google...');
 
+        // Always show account picker instead of silently reusing last Google account.
+        googleProvider.setCustomParameters({
+            prompt: 'select_account'
+        });
+
         // Handle Persistence
         const persistenceMode = rememberMeCheck && rememberMeCheck.checked ?
             browserLocalPersistence :
@@ -210,6 +237,16 @@ async function handleLogout() {
         console.error("❌ Logout Error:", error);
         showToast('Error logging out', 'error');
     }
+}
+
+function handleProfileClick() {
+    if (userMenuDropdown) userMenuDropdown.classList.remove('active');
+    showToast('Profile page will be available soon.', 'info');
+}
+
+function handleSettingsClick() {
+    if (userMenuDropdown) userMenuDropdown.classList.remove('active');
+    showToast('Settings page will be available soon.', 'info');
 }
 
 // ==========================================
@@ -281,7 +318,7 @@ function toggleAuthMode() {
         authName.setAttribute('required', 'true');
     } else {
         authTitle.textContent = "Welcome to WanderNear";
-        authSubtitle.textContent = "Sign in to save favorites and make bookings";
+        authSubtitle.textContent = "Sign in to save favorites and add to your list";
         authSubmitBtn.querySelector('span').textContent = "Sign In";
         authToggleText.innerHTML = 'Don\'t have an account? <a href="#" id="authToggleLink">Sign up</a>';
         nameGroup.style.display = 'none';
@@ -299,11 +336,13 @@ function toggleAuthMode() {
 }
 
 function openAuthModal() {
+    if (!authModal) return;
     authModal.classList.add('active');
     authModal.style.display = 'flex';
 }
 
 function closeAuthModal() {
+    if (!authModal) return;
     authModal.classList.remove('active');
     authModal.style.display = 'none';
     resetForm();
@@ -355,7 +394,8 @@ function handleAuthError(error) {
             message = "No account found with this email";
             break;
         case 'auth/wrong-password':
-            message = "Incorrect password";
+        case 'auth/invalid-credential':
+            message = "Wrong password. Try again";
             break;
         case 'auth/email-already-in-use':
             message = "Email is already registered";
@@ -449,6 +489,30 @@ function createProfileButton(user) {
                 e.stopPropagation();
                 userMenuDropdown.classList.toggle('active');
             });
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleLogout();
+                });
+            }
+
+            if (profileMenuBtn) {
+                profileMenuBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleProfileClick();
+                });
+            }
+
+            if (settingsMenuBtn) {
+                settingsMenuBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSettingsClick();
+                });
+            }
 
             // Close dropdown when clicking outside
             document.addEventListener('click', () => {

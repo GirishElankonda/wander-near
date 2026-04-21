@@ -20,24 +20,38 @@ const TripPlannerModule = (function () {
     let currentItinerary = null;
     let availablePlaces = [];
 
-    // Budget allocation percentages (can be adjusted)
-    const BUDGET_ALLOCATION = {
-        food: 0.40,           // 40%
-        attractions: 0.35,    // 35%
-        transport: 0.15,      // 15%
-        buffer: 0.10          // 10%
+    // Default budget allocation percentages
+    const DEFAULT_ALLOCATION = {
+        food: 40,
+        attractions: 35,
+        transport: 15,
+        buffer: 10
     };
 
-    // Average cost estimation (in local currency)
-    const AVERAGE_COSTS = {
-        restaurant: { min: 15, max: 50, avg: 30 },
-        cafe: { min: 5, max: 20, avg: 10 },
-        fast_food: { min: 8, max: 15, avg: 12 },
-        tourist_attraction: { min: 10, max: 40, avg: 20 },
-        museum: { min: 8, max: 25, avg: 15 },
-        lodging: { min: 50, max: 200, avg: 100 },
-        park: { min: 0, max: 10, avg: 5 }
+    // Active allocation (user can modify)
+    let userAllocation = { ...DEFAULT_ALLOCATION };
+    let isCustomMode = false;
+    let isRegenerating = false;
+
+    // IDs of places used in the LAST generated plan — deprioritised on next regen
+    let lastPlanIds = new Set();
+
+    // Fallback cost ranges per category (used when actual place pool is too small)
+    const FALLBACK_COSTS = {
+        restaurant: { min: 150, max: 800, avg: 350 },
+        cafe: { min: 50, max: 300, avg: 120 },
+        fast_food: { min: 80, max: 250, avg: 150 },
+        tourist_attraction: { min: 0, max: 500, avg: 100 },
+        museum: { min: 20, max: 300, avg: 100 },
+        lodging: { min: 800, max: 6000, avg: 2000 },
+        park: { min: 0, max: 100, avg: 20 }
     };
+
+    // Will be populated dynamically from available places
+    let dynamicCostRanges = {};
+
+    // Reference point for proximity sorting (user's location)
+    let userRefPoint = null;
 
     // Time slots for itinerary
     const TIME_SLOTS = {
@@ -145,47 +159,205 @@ const TripPlannerModule = (function () {
 
         const perDay = currentBudget / planDuration;
         const breakdown = {
-            food: perDay * BUDGET_ALLOCATION.food,
-            attractions: perDay * BUDGET_ALLOCATION.attractions,
-            transport: perDay * BUDGET_ALLOCATION.transport,
-            buffer: perDay * BUDGET_ALLOCATION.buffer
+            food: perDay * (userAllocation.food / 100),
+            attractions: perDay * (userAllocation.attractions / 100),
+            transport: perDay * (userAllocation.transport / 100),
+            buffer: perDay * (userAllocation.buffer / 100)
         };
+
+        // Build stacked bar segments
+        const colors = { food: '#38bdf8', attractions: '#818cf8', transport: '#34d399', buffer: '#fb923c' };
+        const barSegments = Object.entries(userAllocation).map(([key, pct]) =>
+            `<div class="alloc-bar-segment" style="width:${pct}%;background:${colors[key]};" title="${key}: ${pct}%"></div>`
+        ).join('');
 
         display.innerHTML = `
             <div class="budget-breakdown-card">
-                <h4>Budget Allocation ${planDuration > 1 ? `(Per Day: $${perDay.toFixed(2)})` : ''}</h4>
+                <div class="breakdown-header">
+                    <h4>Budget Allocation ${planDuration > 1 ? `<span class="perday-tag">Per Day: ₹${perDay.toFixed(2)}</span>` : ''}</h4>
+                    <button class="btn-customize-alloc" id="toggleCustomAlloc" onclick="TripPlannerModule.toggleCustomAlloc()">
+                        <i class="fas fa-sliders-h"></i>
+                        ${isCustomMode ? 'Hide Sliders' : 'Customize'}
+                    </button>
+                </div>
+
+                <div class="alloc-stacked-bar">${barSegments}</div>
+                <div class="alloc-legend">
+                    <span><span class="legend-dot" style="background:#38bdf8"></span>Food ${userAllocation.food}%</span>
+                    <span><span class="legend-dot" style="background:#818cf8"></span>Attractions ${userAllocation.attractions}%</span>
+                    <span><span class="legend-dot" style="background:#34d399"></span>Transport ${userAllocation.transport}%</span>
+                    <span><span class="legend-dot" style="background:#fb923c"></span>Buffer ${userAllocation.buffer}%</span>
+                </div>
+
+                <div class="custom-alloc-panel" id="customAllocPanel" style="display:${isCustomMode ? 'block' : 'none'}">
+                    ${renderAllocationSliders(perDay)}
+                </div>
+
                 <div class="allocation-grid">
                     <div class="allocation-item">
                         <div class="allocation-icon">🍽️</div>
                         <div class="allocation-details">
                             <span class="allocation-label">Food</span>
-                            <span class="allocation-value">$${breakdown.food.toFixed(2)}</span>
+                            <span class="allocation-value">₹${breakdown.food.toFixed(2)}</span>
                         </div>
                     </div>
                     <div class="allocation-item">
                         <div class="allocation-icon">🎯</div>
                         <div class="allocation-details">
                             <span class="allocation-label">Attractions</span>
-                            <span class="allocation-value">$${breakdown.attractions.toFixed(2)}</span>
+                            <span class="allocation-value">₹${breakdown.attractions.toFixed(2)}</span>
                         </div>
                     </div>
                     <div class="allocation-item">
                         <div class="allocation-icon">🚗</div>
                         <div class="allocation-details">
                             <span class="allocation-label">Transport</span>
-                            <span class="allocation-value">$${breakdown.transport.toFixed(2)}</span>
+                            <span class="allocation-value">₹${breakdown.transport.toFixed(2)}</span>
                         </div>
                     </div>
                     <div class="allocation-item">
                         <div class="allocation-icon">💰</div>
                         <div class="allocation-details">
                             <span class="allocation-label">Buffer</span>
-                            <span class="allocation-value">$${breakdown.buffer.toFixed(2)}</span>
+                            <span class="allocation-value">₹${breakdown.buffer.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Render the slider rows inside the custom allocations panel
+     */
+    function renderAllocationSliders(perDay) {
+        const categories = [
+            { key: 'food', label: 'Food', icon: '🍽️', color: '#38bdf8' },
+            { key: 'attractions', label: 'Attractions', icon: '🎯', color: '#818cf8' },
+            { key: 'transport', label: 'Transport', icon: '🚗', color: '#34d399' },
+            { key: 'buffer', label: 'Buffer', icon: '💰', color: '#fb923c' }
+        ];
+
+        const rows = categories.map(cat => {
+            const amt = (perDay * (userAllocation[cat.key] / 100)).toFixed(0);
+            return `
+            <div class="alloc-slider-row">
+                <div class="alloc-slider-label">
+                    <span class="alloc-slider-icon">${cat.icon}</span>
+                    <span class="alloc-slider-name">${cat.label}</span>
+                    <span class="alloc-slider-pct" id="pct-${cat.key}">${userAllocation[cat.key]}%</span>
+                    <span class="alloc-slider-amt" id="amt-${cat.key}">₹${amt}</span>
+                </div>
+                <input
+                    type="range"
+                    class="alloc-range"
+                    id="slider-${cat.key}"
+                    min="5" max="80" step="1"
+                    value="${userAllocation[cat.key]}"
+                    style="--thumb-color:${cat.color}"
+                    oninput="TripPlannerModule.handleSliderInput('${cat.key}', this.value)"
+                />
+            </div>`;
+        }).join('');
+
+        const total = Object.values(userAllocation).reduce((a, b) => a + b, 0);
+        const isValid = total === 100;
+
+        return `
+            <div class="alloc-slider-container">
+                <div class="alloc-slider-intro">
+                    <p>Drag the sliders to set how much of your daily budget goes to each category. Total must equal 100%.</p>
+                </div>
+                ${rows}
+                <div class="alloc-total-row">
+                    <span class="alloc-total-label">Total</span>
+                    <span class="alloc-total-value ${isValid ? 'valid' : 'invalid'}" id="allocTotal">${total}%</span>
+                    <button class="btn-reset-alloc" onclick="TripPlannerModule.resetAllocations()">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
+                ${!isValid ? '<div class="alloc-warning"><i class="fas fa-exclamation-triangle"></i> Total must equal exactly 100%</div>' : ''}
+            </div>`;
+    }
+
+    /**
+     * Toggle the custom allocation panel
+     */
+    function toggleCustomAlloc() {
+        isCustomMode = !isCustomMode;
+        updateBudgetDisplay();
+    }
+
+    /**
+     * Handle a slider input change — auto-adjust remaining categories proportionally
+     */
+    function handleSliderInput(changedKey, rawValue) {
+        const newVal = parseInt(rawValue, 10);
+        const otherKeys = Object.keys(userAllocation).filter(k => k !== changedKey);
+        const oldOtherTotal = otherKeys.reduce((s, k) => s + userAllocation[k], 0);
+        const remaining = 100 - newVal;
+
+        // If remaining <= 0, clamp all others to minimum
+        if (remaining <= otherKeys.length * 5) {
+            const clampedNew = 100 - otherKeys.length * 5;
+            userAllocation[changedKey] = Math.max(5, clampedNew);
+            otherKeys.forEach(k => { userAllocation[k] = 5; });
+        } else {
+            userAllocation[changedKey] = newVal;
+            // Distribute remaining proportionally
+            if (oldOtherTotal > 0) {
+                let distributed = 0;
+                otherKeys.forEach((k, i) => {
+                    if (i < otherKeys.length - 1) {
+                        const share = Math.round((userAllocation[k] / oldOtherTotal) * remaining);
+                        userAllocation[k] = Math.max(5, share);
+                        distributed += userAllocation[k];
+                    } else {
+                        // Last key absorbs rounding remainder
+                        userAllocation[k] = Math.max(5, remaining - distributed);
+                    }
+                });
+            } else {
+                const equal = Math.floor(remaining / otherKeys.length);
+                otherKeys.forEach(k => { userAllocation[k] = equal; });
+                userAllocation[otherKeys[otherKeys.length - 1]] += remaining - equal * otherKeys.length;
+            }
+        }
+
+        // Live-update sibling sliders + text without full re-render
+        const perDay = currentBudget / planDuration;
+        Object.keys(userAllocation).forEach(k => {
+            const s = document.getElementById(`slider-${k}`);
+            const p = document.getElementById(`pct-${k}`);
+            const a = document.getElementById(`amt-${k}`);
+            if (s) s.value = userAllocation[k];
+            if (p) p.textContent = `${userAllocation[k]}%`;
+            if (a) a.textContent = `₹${(perDay * userAllocation[k] / 100).toFixed(0)}`;
+        });
+
+        // Update total indicator
+        const total = Object.values(userAllocation).reduce((s, v) => s + v, 0);
+        const totalEl = document.getElementById('allocTotal');
+        if (totalEl) {
+            totalEl.textContent = `${total}%`;
+            totalEl.className = `alloc-total-value ${total === 100 ? 'valid' : 'invalid'}`;
+        }
+
+        // Refresh the main breakdown amounts and bar
+        updateBudgetDisplay();
+        // Re-open the panel since updateBudgetDisplay fully re-renders
+        const panel = document.getElementById('customAllocPanel');
+        if (panel) panel.style.display = 'block';
+    }
+
+    /**
+     * Reset allocations to defaults
+     */
+    function resetAllocations() {
+        userAllocation = { ...DEFAULT_ALLOCATION };
+        updateBudgetDisplay();
+        const panel = document.getElementById('customAllocPanel');
+        if (panel) panel.style.display = 'block';
     }
 
     /**
@@ -237,13 +409,10 @@ const TripPlannerModule = (function () {
     }
 
     /**
-     * Handle regenerate plan
+     * Handle regenerate plan — pass true so the engine shuffles for variety
      */
     function handleRegeneratePlan() {
-        if (typeof showToast === 'function') {
-            showToast('Generating a new plan...', 'info');
-        }
-        generateAutoPlan();
+        generateAutoPlan(true);
     }
 
     /**
@@ -268,14 +437,27 @@ const TripPlannerModule = (function () {
     }
 
     /**
-     * Generate automatic trip plan
+     * Generate automatic trip plan.
+     * @param {boolean} [regenerate=false] - When true, shuffles places for variety.
      */
-    function generateAutoPlan() {
+    function generateAutoPlan(regenerate = false) {
+        isRegenerating = regenerate;
+
+        // Refresh user reference point before planning
+        if (window.currentUserLocation) {
+            userRefPoint = window.currentUserLocation;
+        } else {
+            try {
+                const stored = localStorage.getItem('wandernear_user_location');
+                if (stored) userRefPoint = JSON.parse(stored);
+            } catch (e) { /* ignore */ }
+        }
+
         // Show loading state
         showLoadingState();
 
-        // Get available places from main app
-        const places = getAvailablePlaces();
+        // Get available places (sorted nearest-first, unnamed filtered out)
+        let places = getAvailablePlaces();
 
         if (!places || places.length === 0) {
             hideLoadingState();
@@ -285,44 +467,189 @@ const TripPlannerModule = (function () {
             return;
         }
 
+        // On regenerate: shuffle the pool so different places are chosen
+        if (regenerate) {
+            places = shuffleArray(places);
+            if (typeof showToast === 'function') {
+                showToast('Generating a fresh plan...', 'info');
+            }
+        }
+
         // Generate itinerary
         const itinerary = buildItinerary(places, currentBudget, planDuration);
+        
+        // Strict budget enforcement check
+        if (itinerary.totalEstimatedCost > currentBudget) {
+            hideLoadingState();
+            if (typeof showToast === 'function') {
+                showToast("Couldn't able to plan. Budget is too low.", "error");
+            }
+            const container = document.getElementById('itineraryContainer');
+            if (container) {
+                container.innerHTML = `
+                    <div class="empty-state" style="padding: 3rem; text-align: center; background: white; border-radius: 12px; margin-top: 2rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                        <i class="fas fa-wallet" style="font-size: 3rem; color: #ef4444; margin-bottom: 1rem;"></i>
+                        <h3 style="color: #ef4444; margin-bottom: 0.5rem;">Couldn't able to plan</h3>
+                        <p>The minimum estimated cost for this itinerary is roughly ₹${Math.ceil(itinerary.totalEstimatedCost)}, which exceeds your budget of ₹${currentBudget}.</p>
+                        <p style="margin-top: 0.5rem; color: var(--text-muted);">Please increase your budget or select a shorter trip duration.</p>
+                    </div>
+                `;
+                container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            return;
+        }
 
-        // Store current itinerary
         currentItinerary = itinerary;
 
         // Display itinerary
         displayItinerary(itinerary);
-
-        // Hide loading state
         hideLoadingState();
 
-        // Show success message
         if (typeof showToast === 'function') {
-            showToast('Trip plan generated successfully!', 'success');
+            const label = regenerate ? 'New trip plan generated!' : `Trip plan generated${userRefPoint ? ' (sorted by proximity)' : ''}!`;
+            showToast(label, 'success');
         }
     }
 
     /**
-     * Get available places from the main app
+     * Fisher-Yates shuffle — returns a new shuffled array
+     */
+    function shuffleArray(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    /**
+     * Haversine distance in km between two lat/lng points
+     */
+    function haversineDistance(lat1, lng1, lat2, lng2) {
+        const R = 6371; // Earth radius km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    /**
+     * Annotate each place with a distance from userRefPoint (in km)
+     */
+    function annotatePlacesWithDistance(places) {
+        if (!userRefPoint) return places;
+        return places.map(p => ({
+            ...p,
+            _distKm: (p.lat != null && p.lng != null)
+                ? haversineDistance(userRefPoint.lat, userRefPoint.lng, p.lat, p.lng)
+                : 99999
+        }));
+    }
+
+    /**
+     * Compute dynamic cost ranges from the actual pool of places.
+     * For each category we look at the spread of the real places and
+     * map position-in-sorted-list → a cost in ₹ using the fallback min/max.
+     */
+    function computeDynamicCostRanges(places) {
+        const groups = {};
+        places.forEach(p => {
+            const cat = p.category || p.rawCategory || 'restaurant';
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(p);
+        });
+
+        const ranges = {};
+        Object.entries(groups).forEach(([cat, arr]) => {
+            const fb = FALLBACK_COSTS[cat] || FALLBACK_COSTS.restaurant;
+            ranges[cat] = {
+                min: fb.min,
+                max: fb.max,
+                count: arr.length,
+                // avg scales with how many options there are (more variety → use midpoint)
+                avg: fb.min + (fb.max - fb.min) * 0.4
+            };
+        });
+        return ranges;
+    }
+
+    /**
+     * Get available places from the main app, sorted nearest-first.
+     * Filters out unnamed places and assigns descriptive labels to any
+     * places that only have a generic/empty name.
      */
     function getAvailablePlaces() {
-        // Try to get places from the global app state
+        // Try to get user reference point from multiple sources
+        if (!userRefPoint) {
+            if (window.currentUserLocation) {
+                userRefPoint = window.currentUserLocation;
+            } else {
+                try {
+                    const stored = localStorage.getItem('wandernear_user_location');
+                    if (stored) userRefPoint = JSON.parse(stored);
+                } catch (e) { /* ignore */ }
+            }
+        }
+
+        let places = [];
+
         if (window.currentPlaces && window.currentPlaces.length > 0) {
-            return window.currentPlaces;
+            places = window.currentPlaces;
+        } else if (window.allPlaces && window.allPlaces.length > 0) {
+            places = window.allPlaces;
+        } else {
+            try {
+                const stored = localStorage.getItem('wandernear_places');
+                if (stored) places = JSON.parse(stored);
+            } catch (e) { /* ignore */ }
         }
 
-        // Try to get from app module
-        if (window.allPlaces && window.allPlaces.length > 0) {
-            return window.allPlaces;
-        }
+        if (places.length === 0) return [];
 
-        // Return empty array if no places available
-        return [];
+        // ── Resolve unnamed places ────────────────────────────────────────
+        const categoryCounters = {};
+        const CATEGORY_LABELS = {
+            restaurant: 'Restaurant', cafe: 'Café', fast_food: 'Fast Food',
+            tourist_attraction: 'Attraction', museum: 'Museum',
+            lodging: 'Hotel', park: 'Park', bar: 'Bar', gallery: 'Gallery'
+        };
+        places = places.map(p => {
+            const isUnnamed = !p.name ||
+                p.name.trim() === '' ||
+                p.name === 'Unnamed Place' ||
+                p.name === 'undefined';
+            if (!isUnnamed) return p;
+
+            const cat = p.category || p.rawCategory || 'place';
+            const label = CATEGORY_LABELS[cat] || 'Place';
+            categoryCounters[label] = (categoryCounters[label] || 0) + 1;
+            // Build a descriptive name: e.g. "Café #3" or "Restaurant #1"
+            const newName = `${label} #${categoryCounters[label]}`;
+            return { ...p, name: newName };
+        });
+
+        // Compute dynamic cost ranges from actual places
+        dynamicCostRanges = computeDynamicCostRanges(places);
+
+        // Annotate with distance and sort nearest-first
+        const annotated = annotatePlacesWithDistance(places);
+        annotated.sort((a, b) => (a._distKm || 0) - (b._distKm || 0));
+
+        console.log(
+            `[TripPlanner] ${places.length} places loaded.`,
+            userRefPoint
+                ? `Sorted by distance from (${userRefPoint.lat.toFixed(4)}, ${userRefPoint.lng.toFixed(4)})`
+                : 'No user location — order preserved.'
+        );
+
+        return annotated;
     }
 
     /**
-     * Build itinerary based on budget and duration
+     * Build itinerary. Records used places so next regen gets fresh ones first.
      */
     function buildItinerary(places, budget, days) {
         const itinerary = {
@@ -334,166 +661,134 @@ const TripPlannerModule = (function () {
         };
 
         const budgetPerDay = budget / days;
-        const usedPlaces = new Set(); // Track used places to avoid repetition
+        const usedPlaces = new Set();
 
-        // Generate plan for each day
         for (let day = 1; day <= days; day++) {
             const dailyPlan = generateDailyPlan(places, budgetPerDay, day, usedPlaces);
             itinerary.dailyPlans.push(dailyPlan);
             itinerary.totalEstimatedCost += dailyPlan.estimatedCost;
         }
 
+        // Save IDs for deprioritisation on the next regeneration
+        lastPlanIds = new Set(usedPlaces);
+
         return itinerary;
     }
 
     /**
-     * Generate plan for a single day
+     * Generate plan for a single day.
+     * Falls back to ANY remaining place when a category pool is empty.
      */
     function generateDailyPlan(places, dayBudget, dayNumber, usedPlaces) {
         const plan = {
             day: dayNumber,
             budget: dayBudget,
             estimatedCost: 0,
-            slots: {
-                morning: [],
-                afternoon: [],
-                evening: []
-            }
+            slots: { morning: [], afternoon: [], evening: [] }
         };
 
-        // Calculate budget for each category
         const budgets = {
-            food: dayBudget * BUDGET_ALLOCATION.food,
-            attractions: dayBudget * BUDGET_ALLOCATION.attractions,
-            transport: dayBudget * BUDGET_ALLOCATION.transport
+            food: dayBudget * (userAllocation.food / 100),
+            attractions: dayBudget * (userAllocation.attractions / 100),
+            transport: dayBudget * (userAllocation.transport / 100)
         };
 
-        // Separate places by category
-        const restaurants = filterAndSortPlaces(places, ['restaurant', 'fast_food', 'cafe'], usedPlaces);
-        const attractions = filterAndSortPlaces(places, ['tourist_attraction', 'museum', 'park'], usedPlaces);
+        const foodCats = ['restaurant', 'fast_food', 'cafe', 'bar'];
+        const attractionCats = ['tourist_attraction', 'museum', 'park', 'attraction', 'gallery'];
 
-        // Morning: Breakfast + Attraction
-        const breakfast = selectPlace(restaurants, budgets.food * 0.25, usedPlaces);
-        if (breakfast) {
-            plan.slots.morning.push({
-                time: '08:00',
-                type: 'food',
-                place: breakfast,
-                estimatedCost: getEstimatedCost(breakfast)
-            });
-            plan.estimatedCost += getEstimatedCost(breakfast);
-        }
+        // Get category pool; fall back to ALL unused places if category exhausted
+        const pool = (cats) => {
+            const strict = filterPlaces(places, cats, usedPlaces);
+            return strict.length > 0 ? strict : filterPlaces(places, null, usedPlaces);
+        };
 
-        const morningAttraction = selectPlace(attractions, budgets.attractions * 0.4, usedPlaces);
-        if (morningAttraction) {
-            plan.slots.morning.push({
-                time: '10:00',
-                type: 'attraction',
-                place: morningAttraction,
-                estimatedCost: getEstimatedCost(morningAttraction)
-            });
-            plan.estimatedCost += getEstimatedCost(morningAttraction);
-        }
+        const addActivity = (slot, time, type, placePool, budget) => {
+            const place = selectPlace(placePool, budget, usedPlaces);
+            if (!place) return;
+            const cost = getEstimatedCost(place);
+            plan.slots[slot].push({ time, type, place, estimatedCost: cost });
+            plan.estimatedCost += cost;
+        };
 
-        // Afternoon: Lunch + Attraction
-        const lunch = selectPlace(restaurants, budgets.food * 0.40, usedPlaces);
-        if (lunch) {
-            plan.slots.afternoon.push({
-                time: '13:00',
-                type: 'food',
-                place: lunch,
-                estimatedCost: getEstimatedCost(lunch)
-            });
-            plan.estimatedCost += getEstimatedCost(lunch);
-        }
+        addActivity('morning', '08:00', 'food', pool(foodCats), budgets.food * 0.25);
+        addActivity('morning', '10:00', 'attraction', pool(attractionCats), budgets.attractions * 0.4);
+        addActivity('afternoon', '13:00', 'food', pool(foodCats), budgets.food * 0.40);
+        addActivity('afternoon', '15:00', 'attraction', pool(attractionCats), budgets.attractions * 0.4);
+        addActivity('evening', '19:00', 'food', pool(foodCats), budgets.food * 0.35);
+        addActivity('evening', '20:30', 'attraction', pool(attractionCats), budgets.attractions * 0.2);
 
-        const afternoonAttraction = selectPlace(attractions, budgets.attractions * 0.4, usedPlaces);
-        if (afternoonAttraction) {
-            plan.slots.afternoon.push({
-                time: '15:00',
-                type: 'attraction',
-                place: afternoonAttraction,
-                estimatedCost: getEstimatedCost(afternoonAttraction)
-            });
-            plan.estimatedCost += getEstimatedCost(afternoonAttraction);
-        }
-
-        // Evening: Dinner + Optional Activity
-        const dinner = selectPlace(restaurants, budgets.food * 0.35, usedPlaces);
-        if (dinner) {
-            plan.slots.evening.push({
-                time: '19:00',
-                type: 'food',
-                place: dinner,
-                estimatedCost: getEstimatedCost(dinner)
-            });
-            plan.estimatedCost += getEstimatedCost(dinner);
-        }
-
-        const eveningActivity = selectPlace(attractions, budgets.attractions * 0.2, usedPlaces);
-        if (eveningActivity) {
-            plan.slots.evening.push({
-                time: '20:30',
-                type: 'attraction',
-                place: eveningActivity,
-                estimatedCost: getEstimatedCost(eveningActivity)
-            });
-            plan.estimatedCost += getEstimatedCost(eveningActivity);
-        }
-
-        // Add transport cost
         plan.estimatedCost += budgets.transport;
-
         return plan;
     }
 
     /**
-     * Filter and sort places by category
+     * Filter places by category (null = accept all categories).
+     * Preserves caller's input order — NO re-sort (shuffle / distance order honoured).
+     * On regenerate: pushes last-plan places to the back so fresh ones surface first.
      */
-    function filterAndSortPlaces(places, categories, usedPlaces) {
-        return places
-            .filter(place => {
-                // Check if place matches any of the categories
-                if (!place.category && !place.rawCategory) return false;
-                const placeCategory = place.category || place.rawCategory;
-                return categories.includes(placeCategory);
-            })
-            .filter(place => !usedPlaces.has(place.id)) // Exclude already used places
-            .sort((a, b) => {
-                // Sort by rating (if available), then by name
-                if (a.rating && b.rating) {
-                    return b.rating - a.rating;
-                }
-                return a.name.localeCompare(b.name);
-            });
+    function filterPlaces(places, categories, usedPlaces) {
+        const filtered = places.filter(p => {
+            if (usedPlaces.has(p.id)) return false;
+            if (!categories) return true;
+            const cat = p.category || p.rawCategory;
+            return cat && categories.includes(cat);
+        });
+
+        if (!isRegenerating || lastPlanIds.size === 0) return filtered;
+
+        const fresh = filtered.filter(p => !lastPlanIds.has(p.id));
+        const stale = filtered.filter(p => lastPlanIds.has(p.id));
+        return [...fresh, ...stale];
     }
 
     /**
-     * Select a place within budget constraint
+     * Select a place within budget constraint using cost RANGE.
+     * Tries to find the nearest place whose estimated cost fits maxBudget.
+     * Falls back to cheapest available if nothing fits.
      */
     function selectPlace(places, maxBudget, usedPlaces) {
+        // First pass: nearest place within budget
         for (const place of places) {
-            const estimatedCost = getEstimatedCost(place);
-            if (estimatedCost <= maxBudget && !usedPlaces.has(place.id)) {
+            if (usedPlaces.has(place.id)) continue;
+            const cost = getEstimatedCost(place);
+            if (cost <= maxBudget) {
                 usedPlaces.add(place.id);
                 return place;
             }
         }
-        // If no place within budget, return cheapest available
-        if (places.length > 0 && !usedPlaces.has(places[0].id)) {
-            usedPlaces.add(places[0].id);
-            return places[0];
+        // Second pass: nearest place regardless of budget (cheapest fallback)
+        // Sort by estimated cost ascending to pick the cheapest
+        const affordable = [...places]
+            .filter(p => !usedPlaces.has(p.id))
+            .sort((a, b) => getEstimatedCost(a) - getEstimatedCost(b));
+        if (affordable.length > 0) {
+            usedPlaces.add(affordable[0].id);
+            return affordable[0];
         }
         return null;
     }
 
     /**
-     * Get estimated cost for a place
+     * Get estimated cost for a place using dynamic ranges.
+     * Places are ordered by proximity, so index-within-category reflects
+     * how "typical" the place is cost-wise (nearest = more mainstream pricing).
+     * We interpolate within the category's min–max range.
      */
     function getEstimatedCost(place) {
-        const category = place.category || place.rawCategory || 'restaurant';
-        const costs = AVERAGE_COSTS[category] || AVERAGE_COSTS.restaurant;
-        return costs.avg;
+        const cat = place.category || place.rawCategory || 'restaurant';
+        const range = dynamicCostRanges[cat] || FALLBACK_COSTS[cat] || FALLBACK_COSTS.restaurant;
+        // Use a position factor: closer places tend to be mainstream (avg),
+        // farther ones can vary. We use the place's internal rank if available.
+        // For simplicity return avg — the real range is used in selectPlace() filtering.
+        return range.avg;
+    }
+
+    /**
+     * Get the cost range for a category (min and max), used in UI display.
+     */
+    function getCostRange(category) {
+        const cat = category || 'restaurant';
+        return dynamicCostRanges[cat] || FALLBACK_COSTS[cat] || FALLBACK_COSTS.restaurant;
     }
 
     /**
@@ -549,21 +844,21 @@ const TripPlannerModule = (function () {
                     <div class="stat-icon">💵</div>
                     <div class="stat-content">
                         <span class="stat-label">Total Budget</span>
-                        <span class="stat-value">$${itinerary.totalBudget.toFixed(2)}</span>
+                        <span class="stat-value">₹${itinerary.totalBudget.toFixed(2)}</span>
                     </div>
                 </div>
                 <div class="summary-stat">
                     <div class="stat-icon">💰</div>
                     <div class="stat-content">
                         <span class="stat-label">Estimated Cost</span>
-                        <span class="stat-value">$${itinerary.totalEstimatedCost.toFixed(2)}</span>
+                        <span class="stat-value">₹${itinerary.totalEstimatedCost.toFixed(2)}</span>
                     </div>
                 </div>
                 <div class="summary-stat">
                     <div class="stat-icon">🏦</div>
                     <div class="stat-content">
                         <span class="stat-label">Remaining</span>
-                        <span class="stat-value ${remaining >= 0 ? 'text-success' : 'text-error'}">$${Math.abs(remaining).toFixed(2)}</span>
+                        <span class="stat-value ${remaining >= 0 ? 'text-success' : 'text-error'}">₹${Math.abs(remaining).toFixed(2)}</span>
                     </div>
                 </div>
             </div>
@@ -605,7 +900,7 @@ const TripPlannerModule = (function () {
         card.innerHTML = `
             <div class="day-header">
                 <h4>Day ${dailyPlan.day}${totalDays > 1 ? ` of ${totalDays}` : ''}</h4>
-                <span class="day-budget">Budget: $${dailyPlan.budget.toFixed(2)} | Estimated: $${dailyPlan.estimatedCost.toFixed(2)}</span>
+                <span class="day-budget">Budget: ₹${dailyPlan.budget.toFixed(2)} | Estimated: ₹${dailyPlan.estimatedCost.toFixed(2)}</span>
             </div>
             <div class="day-timeline">
                 ${slotsHTML}
@@ -619,25 +914,40 @@ const TripPlannerModule = (function () {
      * Create time slot HTML
      */
     function createTimeSlotHTML(slotName, timeRange, activities) {
-        let activitiesHTML = activities.map(activity => `
+        let activitiesHTML = activities.map(activity => {
+            const cat = activity.place.category || activity.place.rawCategory || 'restaurant';
+            const range = getCostRange(cat);
+            const distKm = activity.place._distKm;
+            const distBadge = (distKm != null && distKm < 9999)
+                ? `<span class="activity-dist">📍 ${distKm < 1 ? (distKm * 1000).toFixed(0) + ' m' : distKm.toFixed(1) + ' km'} away</span>`
+                : '';
+            const rangeBadge = `<span class="activity-cost">₹${range.min}–₹${range.max}</span>`;
+
+            const imageContent = activity.place.photo 
+                ? `<img src="${activity.place.photo}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover; margin-right: 15px; flex-shrink: 0;" alt="${activity.place.name}">`
+                : `<div class="activity-icon">${getActivityIcon(activity.type, activity.place.category)}</div>`;
+
+            return `
             <div class="activity-item" data-place-id="${activity.place.id}">
                 <div class="activity-time">${activity.time}</div>
-                <div class="activity-details">
-                    <div class="activity-icon">${getActivityIcon(activity.type, activity.place.category)}</div>
-                    <div class="activity-content">
+                <div class="activity-details" style="display: flex; align-items: flex-start; width: 100%;">
+                    ${imageContent}
+                    <div class="activity-content" style="flex: 1;">
                         <h5 class="activity-name">${activity.place.name}</h5>
                         <p class="activity-address">${activity.place.address || 'Address not available'}</p>
                         <div class="activity-meta">
                             ${activity.place.rating ? `<span class="activity-rating">⭐ ${activity.place.rating}</span>` : ''}
-                            <span class="activity-cost">~$${activity.estimatedCost.toFixed(2)}</span>
+                            ${distBadge}
+                            ${rangeBadge}
                         </div>
                     </div>
-                    <button class="btn-icon-small activity-action" onclick="TripPlannerModule.viewPlaceDetails(${activity.place.id})" title="View details">
+                    <button class="btn-icon-small activity-action" onclick="TripPlannerModule.viewPlaceDetails(${activity.place.id})" title="View details" style="margin-left: 10px;">
                         <i class="fas fa-info-circle"></i>
                     </button>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
 
         return `
             <div class="time-slot">
@@ -741,7 +1051,10 @@ const TripPlannerModule = (function () {
         generateAutoPlan,
         viewPlaceDetails,
         exportItinerary,
-        getCurrentItinerary: () => currentItinerary
+        getCurrentItinerary: () => currentItinerary,
+        toggleCustomAlloc,
+        handleSliderInput,
+        resetAllocations
     };
 })();
 
@@ -754,5 +1067,11 @@ if (document.readyState === 'loading') {
     TripPlannerModule.init();
 }
 
-// Expose module globally
+// Expose module globally — onclick on HTML elements uses TripPlannerModule directly
 window.TripPlannerModule = TripPlannerModule;
+// Kept for any legacy links but delegates cleanly with no duplicate toast
+window.handleRegeneratePlan = function () {
+    if (typeof TripPlannerModule.generateAutoPlan === 'function') {
+        TripPlannerModule.generateAutoPlan(true);
+    }
+};

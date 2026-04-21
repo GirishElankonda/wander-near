@@ -238,7 +238,7 @@ async function addBooking(place) {
         updateBookingButtons();
 
         // Show success
-        showToast(`${place.name} added to your bookings!`, 'success');
+        showToast(`${place.name} added to your list!`, 'success');
 
         console.log('✅ [ADD BOOKING] SUCCESS - Complete!');
         console.log('═══════════════════════════════════════════════════');
@@ -259,7 +259,7 @@ async function addBooking(place) {
         } else if (error.code === 'unavailable') {
             showToast('Network error. Check internet connection.', 'error');
         } else {
-            showToast(`Booking failed: ${error.message}`, 'error');
+            showToast(`Could not add to list: ${error.message}`, 'error');
         }
     }
 }
@@ -299,7 +299,7 @@ async function removeBooking(bookingId) {
         updateBookingsUI();
         updateBookingButtons();
 
-        showToast('Booking removed', 'success');
+        showToast('Removed from your list', 'success');
         console.log('✅ [REMOVE BOOKING] SUCCESS');
         console.log('═══════════════════════════════════════════════════');
 
@@ -398,9 +398,9 @@ function updateBookingsUI() {
         console.log('└─ No bookings, showing empty state');
         bookingsList.innerHTML = `
             <div class="empty-state">
-                <i class="fas fa-calendar-times" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-                <h3>No Bookings Yet</h3>
-                <p>${currentUser ? 'Start exploring and book your first experience!' : 'Sign in to view your bookings'}</p>
+                <i class="fas fa-list-ul" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                <h3>No Items Yet</h3>
+                <p>${currentUser ? 'Start exploring and add your first experience to your list!' : 'Sign in to view your list'}</p>
                 <button class="btn-primary" onclick="document.getElementById('explore')?.scrollIntoView({behavior: 'smooth'})">
                     Explore Places
                 </button>
@@ -444,7 +444,7 @@ function createBookingCard(booking) {
             </div>
             <div class="booking-detail">
                 <i class="fas fa-calendar"></i>
-                <span>Booked on ${bookedDate}</span>
+                <span>Added on ${bookedDate}</span>
             </div>
             ${booking.rating ? `
                 <div class="booking-detail">
@@ -454,7 +454,7 @@ function createBookingCard(booking) {
             ` : ''}
         </div>
         <div class="booking-card-actions">
-            <button class="btn-outline btn-small" onclick="viewPlaceDetails(${booking.placeId})">
+            <button class="btn-outline btn-small" onclick="window.openPlaceDetails && window.openPlaceDetails(${booking.placeId})">
                 <i class="fas fa-info-circle"></i>
                 View Details
             </button>
@@ -479,11 +479,11 @@ function updateBookingButtons() {
 
         if (isPlaceBooked(placeId)) {
             button.disabled = true;
-            button.innerHTML = '<i class="fas fa-check"></i> Booked';
+            button.innerHTML = '<i class="fas fa-check"></i> In list';
             button.classList.add('booked');
         } else {
             button.disabled = false;
-            button.innerHTML = '<i class="fas fa-calendar-plus"></i> Book';
+            button.innerHTML = '<i class="fas fa-plus"></i> Add to list';
             button.classList.remove('booked');
         }
     });
@@ -497,10 +497,21 @@ function setupBookingsNavigation() {
     const navLinks = document.querySelectorAll('.nav-link');
 
     navLinks.forEach(link => {
-        if (link.getAttribute('href') === '#bookings') {
+        const href = link.getAttribute('href');
+        if (href === '#bookings') {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 showBookingsSection();
+            });
+        } else if (href === '#favorites') {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                showFavoritesSection();
+            });
+        } else if (href === '#home' || href === '#explore') {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                showMainSections(href);
             });
         } else {
             link.addEventListener('click', () => {
@@ -553,6 +564,47 @@ function hideBookingsSection() {
     }
 }
 
+function showFavoritesSection() {
+    console.log('❤️ [NAV] Showing favorites section');
+    hideBookingsSection();
+    if (window.FavoritesModule && window.FavoritesModule.showFavoritesSection) {
+        window.FavoritesModule.showFavoritesSection();
+    }
+
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#favorites') {
+            link.classList.add('active');
+        }
+    });
+}
+
+function showMainSections(targetHash = '#home') {
+    console.log('🏠 [NAV] Returning to main sections:', targetHash);
+    hideBookingsSection();
+    if (window.FavoritesModule && window.FavoritesModule.hideFavoritesSection) {
+        window.FavoritesModule.hideFavoritesSection();
+    }
+
+    document.querySelectorAll('section').forEach(section => {
+        if (section.id !== 'bookings' && section.id !== 'favorites') {
+            section.style.display = '';
+        }
+    });
+
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === targetHash) {
+            link.classList.add('active');
+        }
+    });
+
+    const target = document.querySelector(targetHash);
+    if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
 function promptSignIn() {
     console.log('🔑 [AUTH] Prompting sign in');
 
@@ -561,11 +613,11 @@ function promptSignIn() {
 
     if (authModal) {
         if (authSubtitle) {
-            authSubtitle.textContent = 'Please sign in to book experiences';
+            authSubtitle.textContent = 'Please sign in to add experiences to your list';
         }
         authModal.classList.add('active');
         authModal.style.display = 'flex';
-        showToast('Please sign in to book experiences', 'info');
+        showToast('Please sign in to add experiences to your list', 'info');
     }
 }
 
@@ -601,10 +653,7 @@ function formatCategory(category) {
     return names[category] || category.charAt(0).toUpperCase() + category.slice(1);
 }
 
-function viewPlaceDetails(placeId) {
-    document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' });
-    showToast('Place details feature coming soon', 'info');
-}
+
 
 // ============================================================================
 // GLOBAL EXPORTS

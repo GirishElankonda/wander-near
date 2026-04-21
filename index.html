@@ -40,8 +40,8 @@
             <div class="nav-menu" id="navMenu">
                 <a href="#home" class="nav-link active">Home</a>
                 <a href="#explore" class="nav-link">Explore</a>
-                <a href="#trip-planner" class="nav-link">Trip Planner</a>
-                <a href="#bookings" class="nav-link">My Bookings</a>
+                <a href="trip-planner.html" class="nav-link">Trip Planner</a>
+                <a href="#bookings" class="nav-link">My List</a>
                 <a href="#favorites" class="nav-link">Favorites</a>
             </div>
 
@@ -68,11 +68,11 @@
                             </div>
                         </div>
                         <div class="user-menu-items">
-                            <a href="#profile" class="menu-item">
+                            <a href="#profile" class="menu-item" id="profileMenuBtn">
                                 <i class="fas fa-user-circle"></i>
                                 <span>Profile</span>
                             </a>
-                            <a href="#settings" class="menu-item">
+                            <a href="#settings" class="menu-item" id="settingsMenuBtn">
                                 <i class="fas fa-cog"></i>
                                 <span>Settings</span>
                             </a>
@@ -119,8 +119,8 @@
                         <span>Get Started</span>
                     </button>
                     <button class="btn-outline btn-large" id="watchVideoBtn">
-                        <i class="fas fa-play-circle"></i>
-                        <span>Watch Demo</span>
+                        <i class="fas fa-info-circle"></i>
+                        <span>How it Works</span>
                     </button>
                 </div>
 
@@ -144,7 +144,30 @@
                 <div class="phone-mockup">
                     <div class="phone-frame">
                         <div class="phone-screen">
-                            <div class="app-preview" id="appPreview"></div>
+                            <div class="app-preview" id="appPreview">
+                                <div class="app-status-bar">
+                                    <span class="status-time">12:55</span>
+                                    <span class="status-icons">
+                                        <i class="fas fa-signal"></i>
+                                        <i class="fas fa-wifi"></i>
+                                        <i class="fas fa-battery-full"></i>
+                                    </span>
+                                </div>
+                                <div class="app-header">
+                                    <span class="app-title">WanderNear Dev Console</span>
+                                    <span class="app-env-pill">LIVE</span>
+                                </div>
+                                <div class="app-tabs">
+                                    <button class="app-tab active">Network</button>
+                                    <button class="app-tab">AI Planner</button>
+                                    <button class="app-tab">Security</button>
+                                </div>
+                                <div class="app-body">
+                                    <div class="app-mobile-map-wrapper">
+                                        <div id="mobilePreviewMap" class="app-mobile-map" aria-label="Live map preview"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -312,120 +335,19 @@
         </div>
     </section>
 
-    <!-- Trip Planner Section -->
-    <section class="trip-planner-section" id="trip-planner">
-        <div class="planner-container">
-            <div class="section-header centered">
-                <h2 class="section-title">Budget-Based Auto Trip Planner</h2>
-                <p class="section-subtitle">Let AI plan your perfect trip within your budget</p>
-            </div>
-
-            <div class="planner-card">
-                <!-- Budget Input Section -->
-                <div class="budget-input-section">
-                    <h3>Your Budget</h3>
-                    <div class="budget-input-group">
-                        <div class="budget-input-wrapper">
-                            <span class="budget-currency">$</span>
-                            <input type="number" id="budgetInput" class="budget-input" placeholder="0.00" min="0"
-                                step="10">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Auto Mode Toggle -->
-                <div class="auto-mode-section">
-                    <div class="auto-mode-label">
-                        <div class="auto-mode-icon">🤖</div>
-                        <div class="auto-mode-text">
-                            <h4>Auto Planning Mode</h4>
-                            <p>Let AI automatically generate your itinerary</p>
-                        </div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="autoModeToggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
-                <!-- Duration Selector -->
-                <div class="duration-section">
-                    <h4>Plan Duration</h4>
-                    <div class="duration-buttons">
-                        <button class="duration-btn active" data-duration="1">
-                            <i class="fas fa-calendar-day"></i>
-                            1 Day
-                        </button>
-                        <button class="duration-btn" data-duration="2">
-                            <i class="fas fa-calendar-alt"></i>
-                            2 Days
-                        </button>
-                        <button class="duration-btn" data-duration="3">
-                            <i class="fas fa-calendar-week"></i>
-                            3 Days
-                        </button>
-                        <button class="duration-btn" data-duration="7">
-                            <i class="fas fa-calendar"></i>
-                            Entire Trip (7 Days)
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Budget Breakdown Display -->
-                <div id="budgetBreakdown"></div>
-
-                <!-- Manual Selection Section (hidden by default) -->
-                <div id="manualSelectionSection" class="manual-selection-section" style="display: none;">
-                    <h4>Manual Selection Mode</h4>
-                    <p>Browse the Explore section below and select places to add to your itinerary</p>
-                    <button class="btn-primary"
-                        onclick="document.getElementById('explore').scrollIntoView({behavior: 'smooth'})">
-                        <i class="fas fa-search"></i>
-                        Browse Places
-                    </button>
-                </div>
-
-                <!-- Auto Generation Section (hidden by default) -->
-                <div id="autoGenerationSection" style="display: none;">
-                    <!-- Will show info about auto generation -->
-                </div>
-
-                <!-- Generate Plan Button -->
-                <div class="generate-section">
-                    <button class="btn-generate disabled" id="generatePlanBtn">
-                        <i class="fas fa-magic"></i>
-                        <span>Generate Trip Plan</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Itinerary Display -->
-            <div id="itineraryContainer" class="itinerary-container">
-                <!-- Itinerary will be dynamically inserted here -->
-            </div>
-
-            <!-- Regenerate Button (hidden by default) -->
-            <button type="button" class="btn-regenerate" id="regeneratePlanBtn" style="display: none;"
-                onclick="handleRegeneratePlan()">
-                <i class="fas fa-sync-alt"></i>
-                Regenerate Plan
-            </button>
-        </div>
-    </section>
-
-    <!-- My Bookings Section -->
+    <!-- My List Section -->
     <section class="bookings-section" id="bookings" style="display: none;">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">My Bookings</h2>
-                <p class="section-subtitle">Manage your upcoming reservations</p>
+                <h2 class="section-title">My List</h2>
+                <p class="section-subtitle">Your saved places and upcoming plans</p>
             </div>
 
             <div class="bookings-list" id="bookingsList">
                 <div class="empty-state">
-                    <i class="fas fa-calendar-times"></i>
-                    <h3>No Bookings Yet</h3>
-                    <p>Start exploring and book your first experience!</p>
+                    <i class="fas fa-list-ul"></i>
+                    <h3>No Items Yet</h3>
+                    <p>Start exploring and add your first experience to your list!</p>
                     <button class="btn-primary"
                         onclick="document.getElementById('explore').scrollIntoView({behavior: 'smooth'})">
                         Explore Places
@@ -465,7 +387,7 @@
                 <div class="auth-header">
                     <i class="fas fa-compass auth-logo"></i>
                     <h2 id="authTitle">Welcome to WanderNear</h2>
-                    <p id="authSubtitle">Sign in to save favorites and make bookings</p>
+                    <p id="authSubtitle">Sign in to save favorites and add to your list</p>
                 </div>
 
                 <div class="auth-form" id="authForm">
@@ -544,19 +466,23 @@
         </div>
     </div>
 
-    <!-- Video Modal -->
+    <!-- How it Works Modal -->
     <div class="modal" id="videoModal">
         <div class="modal-overlay" id="videoModalOverlay"></div>
         <div class="modal-content video-modal">
             <button class="modal-close" id="videoModalClose">
                 <i class="fas fa-times"></i>
             </button>
-            <div class="video-container">
-                <iframe id="demoVideo" width="100%" height="100%"
-                    src="https://www.youtube.com/embed/dQw4w9WgXcQ?enablejsapi=1" title="WanderNear Demo"
-                    frameborder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowfullscreen></iframe>
+            <div class="tech-modal-content">
+                <h2 style="margin-bottom: 1rem;">How WanderNear Works</h2>
+                <p style="margin-bottom: 1.5rem; color: var(--text-muted);">Welcome to WanderNear! Here is a quick guide to our main features:</p>
+                <ul class="tech-list" style="list-style-type: none; padding-left: 0;">
+                    <li style="margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px;"><i class="fas fa-home" style="margin-top: 4px; color: var(--primary-color); font-size: 1.2rem;"></i> <div><strong style="display: block; margin-bottom: 4px;">Home</strong>The starting point where you can search for places around any location globally.</div></li>
+                    <li style="margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px;"><i class="fas fa-compass" style="margin-top: 4px; color: var(--primary-color); font-size: 1.2rem;"></i> <div><strong style="display: block; margin-bottom: 4px;">Explore</strong>View nearby restaurants, hotels, and tourist attractions on an interactive map or visual grid.</div></li>
+                    <li style="margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px;"><i class="fas fa-route" style="margin-top: 4px; color: var(--primary-color); font-size: 1.2rem;"></i> <div><strong style="display: block; margin-bottom: 4px;">Trip Planner</strong>Use our smart tool to automatically generate personalized, budget-friendly daily itineraries.</div></li>
+                    <li style="margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px;"><i class="fas fa-list-ul" style="margin-top: 4px; color: var(--primary-color); font-size: 1.2rem;"></i> <div><strong style="display: block; margin-bottom: 4px;">My List</strong>Your personal bucket list. Keep track of places you intend to visit and organize upcoming plans.</div></li>
+                    <li style="margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px;"><i class="fas fa-heart" style="margin-top: 4px; color: var(--primary-color); font-size: 1.2rem;"></i> <div><strong style="display: block; margin-bottom: 4px;">Favorites</strong>Keep a curated collection of your absolute favorite destinations for quick access.</div></li>
+                </ul>
             </div>
         </div>
     </div>
@@ -608,6 +534,8 @@
     <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- Config (generated from .env; run npm run build:config) -->
+    <script src="config.generated.js"></script>
     <!-- Galaxy Background Animation -->
     <script type="module" src="background-animation.js"></script>
 
@@ -623,7 +551,6 @@
 
     <!-- App Scripts -->
     <script src="geolocation.js"></script>
-    <script src="trip-planner.js"></script>
     <script src="app.js"></script>
     <style>
         .remember-me-container {

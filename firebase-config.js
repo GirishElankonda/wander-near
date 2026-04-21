@@ -3,17 +3,26 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Your web app's Firebase configuration
-// REPLACE these with your actual Firebase project config keys
-const firebaseConfig = {
-  apiKey: "AIzaSyBR0p54ZFxAEd6fvlYXocBET9pXFGYikao",
-  authDomain: "travelhelper-c030c.firebaseapp.com",
-  projectId: "travelhelper-c030c",
-  storageBucket: "travelhelper-c030c.firebasestorage.app",
-  messagingSenderId: "762643126460",
-  appId: "1:762643126460:web:cf290bb423eb6a73cc18b9",
-  measurementId: "G-3LVXV2YMCV"
-};
+// Firebase config from environment (injected at build via config.generated.js)
+// Run: npm run build:config (reads .env and generates config.generated.js)
+const firebaseConfig = (typeof window !== 'undefined' && window.__APP_CONFIG__ && window.__APP_CONFIG__.firebase)
+  ? window.__APP_CONFIG__.firebase
+  : (function () {
+      console.warn('WanderNear: No __APP_CONFIG__.firebase. Copy .env.example to .env, fill in Firebase keys, then run: npm run build:config');
+      return {
+        apiKey: '',
+        authDomain: '',
+        projectId: '',
+        storageBucket: '',
+        messagingSenderId: '',
+        appId: '',
+        measurementId: ''
+      };
+    })();
+
+if (!firebaseConfig.apiKey) {
+  console.error('WanderNear: Firebase apiKey is missing. Set VITE_FIREBASE_* in .env and run npm run build:config.');
+}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
