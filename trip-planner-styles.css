@@ -941,12 +941,28 @@
 
 /* ========== Responsive Design ========== */
 @media (max-width: 768px) {
+    .planner-page-main {
+        padding-top: calc(64px + var(--space-md));
+    }
+
+    .planner-sync-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        padding: var(--space-md);
+        font-size: var(--font-size-sm);
+    }
+
     .trip-planner-section {
         padding: var(--space-xl) var(--space-md);
     }
 
     .planner-card {
         padding: var(--space-lg);
+    }
+
+    .section-header.centered .section-title {
+        font-size: var(--font-size-2xl);
     }
 
     .budget-input {
@@ -957,10 +973,20 @@
         flex-direction: column;
         gap: var(--space-md);
         text-align: center;
+        align-items: stretch;
+    }
+
+    .auto-mode-label {
+        justify-content: center;
+    }
+
+    .toggle-switch {
+        align-self: center;
     }
 
     .duration-btn {
-        min-width: 120px;
+        min-width: 0;
+        flex: 1 1 calc(50% - var(--space-sm));
     }
 
     .allocation-grid {
@@ -977,17 +1003,35 @@
         gap: var(--space-sm);
     }
 
+    .activity-item {
+        padding: var(--space-md);
+    }
+
     .activity-details {
         flex-wrap: wrap;
+        gap: var(--space-sm);
     }
 
     .activity-time {
         order: -1;
         width: 100%;
     }
+
+    .activity-meta {
+        flex-wrap: wrap;
+    }
+
+    .breakdown-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 
 @media (max-width: 480px) {
+    .planner-sync-banner span {
+        line-height: 1.5;
+    }
+
     .duration-buttons {
         flex-direction: column;
     }
@@ -995,10 +1039,21 @@
     .duration-btn {
         width: 100%;
         min-width: 0;
+        flex: none;
     }
 
     .btn-generate {
         font-size: var(--font-size-lg);
         padding: var(--space-md) var(--space-lg);
+        width: 100%;
+    }
+
+    .alloc-legend {
+        flex-direction: column;
+        gap: var(--space-xs);
+    }
+
+    .itinerary-summary-card {
+        padding: var(--space-md);
     }
 }

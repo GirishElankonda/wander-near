@@ -103,6 +103,12 @@ const TripPlannerModule = (function () {
             regenerateBtn.addEventListener('click', handleRegeneratePlan);
         }
 
+        // Payment button
+        const paymentBtn = document.getElementById('paymentBtn');
+        if (paymentBtn) {
+            paymentBtn.addEventListener('click', handlePayment);
+        }
+
         console.log('Trip Planner event listeners setup complete');
     }
 
@@ -413,6 +419,44 @@ const TripPlannerModule = (function () {
      */
     function handleRegeneratePlan() {
         generateAutoPlan(true);
+    }
+
+    /**
+     * Handle payment integration with Stripe
+     */
+    async function handlePayment() {
+        const paymentBtn = document.getElementById('paymentBtn');
+        const originalText = paymentBtn.innerHTML;
+        
+        try {
+            paymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            paymentBtn.disabled = true;
+
+            const response = await fetch('http://localhost:3000/api/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    budget: currentBudget
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                throw new Error(data.error || 'Failed to create payment session');
+            }
+        } catch (error) {
+            console.error('Payment error:', error);
+            if (typeof showToast === 'function') {
+                showToast(error.message, 'error');
+            }
+            paymentBtn.innerHTML = originalText;
+            paymentBtn.disabled = false;
+        }
     }
 
     /**
@@ -804,6 +848,12 @@ const TripPlannerModule = (function () {
         const regenerateBtn = document.getElementById('regeneratePlanBtn');
         if (regenerateBtn) {
             regenerateBtn.style.display = 'inline-flex';
+        }
+
+        // Show payment button
+        const paymentBtn = document.getElementById('paymentBtn');
+        if (paymentBtn) {
+            paymentBtn.style.display = 'inline-flex';
         }
 
         // Create summary card
