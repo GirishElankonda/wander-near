@@ -1,9 +1,10 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+// Firebase SDK — imported from npm package so Vite can bundle & tree-shake
+import { initializeApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
-// Firebase config from Vite environment variables (set VITE_FIREBASE_* in .env or Netlify env vars)
+// Firebase config from Vite environment variables.
+// Local dev: set in .env     |    Netlify: set in Site Settings → Environment Variables
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -16,9 +17,8 @@ const firebaseConfig = {
 
 if (!firebaseConfig.apiKey) {
   console.error(
-    'WanderNear: Firebase apiKey is missing. ' +
-    'Set VITE_FIREBASE_* environment variables in your .env file (local) ' +
-    'or in your Netlify site settings (deployed).'
+    '[WanderNear] Firebase apiKey is missing. ' +
+    'Set VITE_FIREBASE_* in your .env file (local) or Netlify environment variables (deployed).'
   );
 }
 

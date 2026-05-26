@@ -71,5 +71,8 @@ node_modules/
 .env.production.local
 config.generated.js
 
+# Vite build output (Netlify builds this fresh from source)
+dist/
+
 # dataconnect generated files
 .dataconnect

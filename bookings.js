@@ -6,7 +6,7 @@
  */
 
 import { auth, db } from './firebase-config.js';
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { onAuthStateChanged } from 'firebase/auth';
 import {
     collection,
     doc,
@@ -18,7 +18,7 @@ import {
     query,
     orderBy,
     serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from 'firebase/firestore';
 
 // ============================================================================
 // GLOBAL STATE - SINGLE SOURCE OF TRUTH

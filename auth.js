@@ -9,13 +9,13 @@ import {
     setPersistence,
     browserSessionPersistence,
     browserLocalPersistence
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+} from 'firebase/auth';
 import {
     doc,
     setDoc,
     getDoc,
     serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from 'firebase/firestore';
 
 // DOM Elements
 const authModal = document.getElementById('authModal');

@@ -1,4 +1,4 @@
-import { Renderer, Camera, Transform, Geometry, Program, Mesh } from './node_modules/ogl/src/index.js';
+import { Renderer, Camera, Transform, Geometry, Program, Mesh } from 'ogl';
 
 class GalaxyBackground {
     constructor() {

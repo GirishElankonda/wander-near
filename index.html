@@ -534,22 +534,16 @@
     <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- Galaxy Background Animation -->
-    <script type="module" src="background-animation.js"></script>
-
-    <!-- Firebase Auth Module -->
-    <script type="module" src="auth.js"></script>
-
-    <!-- Bookings Module -->
-    <script type="module" src="bookings.js"></script>
-
-    <!-- Leaflet JS -->
+    <!-- Leaflet JS (CDN – loaded before app scripts that use L.*) -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-    <!-- App Scripts -->
-    <script src="geolocation.js"></script>
-    <script src="app.js"></script>
+    <!-- Single Vite module entry (bundles Firebase + auth + bookings + background animation) -->
+    <script type="module" src="/main.js"></script>
+
+    <!-- Non-module IIFE scripts (served from /public, copied to dist/ by Vite) -->
+    <script src="/geolocation.js" defer></script>
+    <script src="/app.js" defer></script>
     <style>
         .remember-me-container {
             margin-bottom: 1.5rem;

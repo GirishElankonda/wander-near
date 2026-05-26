@@ -234,9 +234,12 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <script type="module" src="auth.js"></script>
-    <script src="planner-page.js"></script>
-    <script src="trip-planner.js"></script>
+    <!-- Single Vite module entry (bundles Firebase auth for user menu) -->
+    <script type="module" src="/trip-planner-main.js"></script>
+
+    <!-- Non-module IIFE scripts (served from /public, copied to dist/ by Vite) -->
+    <script src="/planner-page.js" defer></script>
+    <script src="/trip-planner.js" defer></script>
     <style>
         .remember-me-container {
             margin-bottom: 1.5rem;
