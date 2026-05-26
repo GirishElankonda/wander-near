@@ -3,25 +3,23 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Firebase config from environment (injected at build via config.generated.js)
-// Run: npm run build:config (reads .env and generates config.generated.js)
-const firebaseConfig = (typeof window !== 'undefined' && window.__APP_CONFIG__ && window.__APP_CONFIG__.firebase)
-  ? window.__APP_CONFIG__.firebase
-  : (function () {
-      console.warn('WanderNear: No __APP_CONFIG__.firebase. Copy .env.example to .env, fill in Firebase keys, then run: npm run build:config');
-      return {
-        apiKey: '',
-        authDomain: '',
-        projectId: '',
-        storageBucket: '',
-        messagingSenderId: '',
-        appId: '',
-        measurementId: ''
-      };
-    })();
+// Firebase config from Vite environment variables (set VITE_FIREBASE_* in .env or Netlify env vars)
+const firebaseConfig = {
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+};
 
 if (!firebaseConfig.apiKey) {
-  console.error('WanderNear: Firebase apiKey is missing. Set VITE_FIREBASE_* in .env and run npm run build:config.');
+  console.error(
+    'WanderNear: Firebase apiKey is missing. ' +
+    'Set VITE_FIREBASE_* environment variables in your .env file (local) ' +
+    'or in your Netlify site settings (deployed).'
+  );
 }
 
 // Initialize Firebase

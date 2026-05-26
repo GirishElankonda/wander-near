@@ -5,10 +5,13 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:config": "node scripts/generate-config.js",
+    "start": "node server.js",
     "server": "node server.js",
     "dev": "vite",
-    "start": "node server.js"
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev:client": "vite",
+    "dev:server": "node server.js"
   },
   "author": "",
   "license": "ISC",
@@ -21,6 +24,6 @@
     "stripe": "^22.0.2"
   },
   "devDependencies": {
-    "vite": "^8.0.14"
+    "vite": "^8.0.9"
   }
 }

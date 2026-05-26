@@ -31,10 +31,8 @@
     // Theme handling
     const THEME_STORAGE_KEY = 'wandernear-theme';
 
-    // Overpass API endpoint (from env via config.generated.js)
-    const OVERPASS_API_URL = (typeof window !== 'undefined' && window.__APP_CONFIG__ && window.__APP_CONFIG__.overpassApiUrl)
-        ? window.__APP_CONFIG__.overpassApiUrl
-        : 'https://overpass-api.de/api/interpreter';
+    // Overpass API endpoint (public, no API key required)
+    const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
 
     // Cache for place searches
     const placesCache = new Map();
@@ -89,10 +87,8 @@
             zoomControl: true // Leaflet has built-in zoom controls
         });
 
-        // Add OpenStreetMap tiles (URL from config when available)
-        const osmTileUrl = (typeof window !== 'undefined' && window.__APP_CONFIG__ && window.__APP_CONFIG__.osmTileUrl)
-            ? window.__APP_CONFIG__.osmTileUrl
-            : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        // Add OpenStreetMap tiles (public, no API key required)
+        const osmTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         L.tileLayer(osmTileUrl, {
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19
@@ -185,9 +181,7 @@
             tap: false
         });
 
-        const osmTileUrl = (typeof window !== 'undefined' && window.__APP_CONFIG__ && window.__APP_CONFIG__.osmTileUrl)
-            ? window.__APP_CONFIG__.osmTileUrl
-            : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const osmTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         L.tileLayer(osmTileUrl, { maxZoom: 19 }).addTo(mobilePreviewMap);
 
         if (currentUserLocation) {
@@ -775,10 +769,8 @@
      * Search places by query using Nominatim
      */
     function searchPlacesByQuery(query) {
-        // Use Nominatim to geocode the query (base URL from config when available)
-        const nominatimSearchBase = (typeof window !== 'undefined' && window.__APP_CONFIG__ && window.__APP_CONFIG__.nominatimSearchUrl)
-            ? window.__APP_CONFIG__.nominatimSearchUrl
-            : 'https://nominatim.openstreetmap.org/search';
+        // Use Nominatim to geocode the query (public, no API key required)
+        const nominatimSearchBase = 'https://nominatim.openstreetmap.org/search';
         const url = `${nominatimSearchBase}?q=${encodeURIComponent(query)}&format=json&limit=1`;
 
         fetch(url, {

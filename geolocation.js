@@ -15,11 +15,9 @@
 (function() {
     'use strict';
 
-    // Configuration - Nominatim URL from env via config.generated.js (fallback for dev without build)
+    // Nominatim reverse geocoding URL (public, no API key required)
     // IMPORTANT: Nominatim has a strict rate limit of 1 request per second
-    const NOMINATIM_REVERSE_URL = (typeof window !== 'undefined' && window.__APP_CONFIG__ && window.__APP_CONFIG__.nominatimReverseUrl)
-        ? window.__APP_CONFIG__.nominatimReverseUrl
-        : 'https://nominatim.openstreetmap.org/reverse';
+    const NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
     
     // Cache for geocoding results to avoid redundant API calls and respect rate limits
     const geocodeCache = new Map();
