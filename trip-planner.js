@@ -433,7 +433,7 @@ const TripPlannerModule = (function () {
             paymentBtn.disabled = true;
 
             // API base URL injected by trip-planner-main.js from Vite's import.meta.env.VITE_API_BASE_URL
-            const apiBase = window.__WANDERNEAR_API_BASE__ || 'http://localhost:3000';
+            const apiBase = window.__WANDERNEAR_API_BASE__ || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3000' : 'https://wander-near.onrender.com');
             const response = await fetch(`${apiBase}/api/create-checkout-session`, {
                 method: 'POST',
                 headers: {

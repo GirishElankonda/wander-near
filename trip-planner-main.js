@@ -12,4 +12,4 @@ import './auth.js';
 
 // Expose backend API base URL to window so public/trip-planner.js (IIFE) can use it.
 // Vite replaces import.meta.env.VITE_API_BASE_URL at build time.
-window.__WANDERNEAR_API_BASE__ = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+window.__WANDERNEAR_API_BASE__ = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:3000' : 'https://wander-near.onrender.com');

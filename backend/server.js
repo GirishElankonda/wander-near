@@ -76,7 +76,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
         const frontendBase =
             process.env.FRONTEND_URL ||
             req.headers.origin ||
-            'http://localhost:5173';
+            'https://wandernear.netlify.app';
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],

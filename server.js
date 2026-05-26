@@ -45,8 +45,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
             mode: 'payment',
             // Redirect URLs after successful/failed payment
             // We use the referrer URL or local dev server
-            success_url: `${req.headers.origin || 'http://localhost:5173'}/trip-planner.html?payment=success`,
-            cancel_url: `${req.headers.origin || 'http://localhost:5173'}/trip-planner.html`,
+            success_url: `${process.env.FRONTEND_URL || req.headers.origin || 'https://wandernear.netlify.app'}/trip-planner.html?payment=success`,
+            cancel_url: `${process.env.FRONTEND_URL || req.headers.origin || 'https://wandernear.netlify.app'}/trip-planner.html`,
         });
 
         res.json({ id: session.id, url: session.url });
