@@ -432,7 +432,9 @@ const TripPlannerModule = (function () {
             paymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             paymentBtn.disabled = true;
 
-            const response = await fetch('http://localhost:3000/api/create-checkout-session', {
+            // API base URL injected by trip-planner-main.js from Vite's import.meta.env.VITE_API_BASE_URL
+            const apiBase = window.__WANDERNEAR_API_BASE__ || 'http://localhost:3000';
+            const response = await fetch(`${apiBase}/api/create-checkout-session`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

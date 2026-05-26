@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: wandernear-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: STRIPE_SECRET_KEY
+        sync: false          # Set manually in Render dashboard — never commit secrets
+      - key: ALLOWED_ORIGINS
+        sync: false          # e.g. https://wandernear.netlify.app
+      - key: FRONTEND_URL
+        sync: false          # e.g. https://wandernear.netlify.app
+    healthCheckPath: /health
+    autoDeploy: true
